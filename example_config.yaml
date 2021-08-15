@@ -1,0 +1,9 @@
+taz:
+  taz_id: ${TAZ_ID}
+  taz_password: ${TAZ_PASSWORD}
+  dowload_format: "pdf" # Valid formats are: pdf, epub, epubt, html, ascii, mobi, mobit
+
+download_folder: "/path/to/download/folder"
+
+logging:
+  log_level: "info"
