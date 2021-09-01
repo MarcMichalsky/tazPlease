@@ -87,6 +87,6 @@ if os.path.isdir(config['download_folder']):
         config['download_folder'] if config['download_folder'].endswith('/') else config['download_folder'] + "/"
     for n in newspaper_downloaded:
         try:
-            shutil.move(dir_path + 'tmp/' + n, download_folder + n)
+            shutil.move(dir_path + 'tmp/' + n, download_folder)
         except Exception as e:
             logging.error(f"Could not move file to download folder \"{download_folder}\"\n{e}", exc_info=True)
