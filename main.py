@@ -49,7 +49,7 @@ try:
     newspaper_available = taz_dl.scrape_newspaper()
 
     # Remove outdated newspaper from download_history.csv
-    df.drop([f.index for f in df['file'] if f not in newspaper_available], inplace=True)
+    df.drop([index for index, row in df.iterrows() if row.file not in newspaper_available], inplace=True)
 
     # Find newspaper which are not already downloaded
     newspaper_to_download = [n for n in newspaper_available if n not in df.file.values]
