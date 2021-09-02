@@ -41,6 +41,13 @@ class TazDownloader:
         Downloads a newspaper from dl.taz.de and stores it in /tmp
         """
 
+        # Check if folder exists
+        try:
+            if not os.path.isdir(dir_path):
+                os.mkdirs(dir_path)
+        except Exception as e:
+            raise TazDownloadError(f"Could find or create \"{dir_path}\":\n{e}")
+
         # download taz
         try:
             with requests.get(
