@@ -1,9 +1,20 @@
-taz:
-  taz_id: ${TAZ_ID}
-  taz_password: ${TAZ_PASSWORD}
-  dowload_format: "pdf" # Valid formats are: pdf, epub, epubt, html, ascii, mobi, mobit
+# Your taz id (gets read from .env file)
+id: ${TAZ_ID}
 
+# Your taz password (gets read from .env file)
+password: ${TAZ_PASSWORD}
+
+# In which format do you want to download your newspaper?
+# Valid formats are: pdf, epub, epubt, html, ascii, mobi, mobit
+download_format: "pdf"
+
+# Where should the downloaded files be stored?
 download_folder: "/path/to/download/folder"
 
-logging:
-  log_level: "info"
+# Use a lock file that indicates whether tomorrow's newspaper has already been downloaded to limit the number of times
+# the taz.de website is queried for new editions
+use_lock_file: True
+
+# Set the log level.
+# Valid formats are: notset, debug, info, warning, error, critical
+log_level: "info"

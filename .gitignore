@@ -1,6 +1,8 @@
 download_history.csv
 tazPlease.log
 config.yaml
+tmp/
+*.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

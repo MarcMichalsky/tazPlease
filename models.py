@@ -4,8 +4,109 @@ from requests.exceptions import HTTPError
 from exceptions import TazDownloadFormatException
 from exceptions import TazDownloadError
 from bs4 import BeautifulSoup
+from envyaml import EnvYAML
+import argparse
 
 dir_path = os.path.dirname(os.path.realpath(__file__)) + '/'
+
+
+class TazConfiguration:
+    """
+    This class represents the configuration that is needed to run the program.
+    On initialization it trys to load the configuration from either the config.yaml or from the arguments passed.
+    """
+
+    # List of tuples that each defines a single configuration that can be set either in the config.yaml by passing it
+    # as an argument.
+    # CONFIGURATIONS[0]: configuration name
+    # CONFIGURATIONS[1]: is it required?
+    CONFIGURATIONS = [
+        ('id', True),
+        ('password', True),
+        ('download_format', False),
+        ('download_folder', True),
+        ('use_lock_file', False),
+        ('log_level', False),
+    ]
+
+    def __init__(self):
+        self._config = {}
+
+        # try to load configuration
+        try:
+            self._load_config()
+        except TazDownloadFormatException:
+            raise
+        except Exception:
+            raise
+
+    def _load_config(self):
+        # Try to load config.yaml
+        try:
+            conf_yaml = EnvYAML(dir_path + 'config.yaml', dir_path + '.env')
+        except Exception as e:
+            raise Exception(f"Something went wrong when reading config.yaml.\n{e}")
+
+        # Get console arguments
+        console_args = self._parse_arguments()
+
+        # Set configurations by preferring console arguments over settings in config.yaml
+        for conf, required in self.CONFIGURATIONS:
+            if conf in console_args and getattr(console_args, conf) is not None:
+                self._config[conf] = getattr(console_args, conf)
+            elif conf_yaml.get(conf, None) is not None:
+                self._config[conf] = conf_yaml[conf]
+            else:
+                if required:
+                    raise TazConfigurationError(conf)
+
+    def _parse_arguments(self):
+        """
+        Parse command line arguments.
+        """
+        argparser = argparse.ArgumentParser(
+            description='Download taz e-paper'
+        )
+        argparser.add_argument(
+            '-i',
+            '--id',
+            action='store',
+            type=str,
+        )
+        argparser.add_argument(
+            '-p',
+            '--password',
+            action='store',
+            type=str,
+        )
+        argparser.add_argument(
+            '-f',
+            '--download-format',
+            action='store',
+            type=str,
+            choices=['pdf', 'epub', 'epubt', 'html', 'ascii', 'mobi', 'mobit'],
+        )
+        argparser.add_argument(
+            '-d',
+            '--download_folder',
+            action='store',
+            type=str,
+        )
+        argparser.add_argument(
+            '-l',
+            '--use_lock_file',
+            action='store_true',
+            default=None
+        )
+        argparser.add_argument(
+            '--log_level',
+            action='store',
+            choices=['notset', 'debug', 'info', 'warning', 'error', 'critical'],
+        )
+        return argparser.parse_args()
+
+    def get_config(self) -> dict:
+        return self._config
 
 
 class TazDownloader:
@@ -15,30 +116,28 @@ class TazDownloader:
                              'Chrome/79.0.3945.130 Safari/537.36'}
 
     def __init__(self, taz_id: str, password: str, download_format: str = "pdf"):
-        """
-        :param taz_id:
-        :param password:
-        :param download_format:
-        """
         self.taz_id = taz_id
         self.password = password
         if download_format in self.download_formats:
             self.download_url = self.BASE_URL + download_format
         else:
-            raise TazDownloadFormatException
+            raise TazDownloadFormatException(download_format)
 
     def scrape_newspaper(self) -> list:
         """
         Scrapes the newspaper available for download from https://dl.taz.de/
         :return: a list of file names (str)
         """
-        page = requests.get(self.download_url, headers=self.HEADERS)
-        soup = BeautifulSoup(page.content, 'html.parser')
-        return [n['value'] for n in soup.find("select").find_all("option")]
+        try:
+            page = requests.get(self.download_url, headers=self.HEADERS)
+            soup = BeautifulSoup(page.content, 'html.parser')
+            return [n['value'] for n in soup.find("select").find_all("option")]
+        except HTTPError as http_e:
+            raise TazDownloadError(f"Could not scrape available newspaper editions:\n{http_e}")
 
     def download_newspaper(self, taz: str, download_folder: str = dir_path + 'tmp/'):
         """
-        Downloads a newspaper from dl.taz.de and stores it in /tmp
+        Downloads a newspaper from dl.taz.de and stores it in tmp/
         """
 
         # Check if folder exists
