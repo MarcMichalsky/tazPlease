@@ -25,7 +25,7 @@ class TazConfiguration:
         ('password', True),
         ('download_format', False),
         ('download_folder', True),
-        ('use_lock_file', False),
+        ('limit_requests', False),
         ('log_level', False),
     ]
 
@@ -94,7 +94,7 @@ class TazConfiguration:
         )
         argparser.add_argument(
             '-l',
-            '--use_lock_file',
+            '--limit-requests',
             action='store_true',
             default=None
         )
