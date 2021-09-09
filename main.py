@@ -23,22 +23,6 @@ def main(config: dict):
     except ValueError as e:
         logging.error(f"Could not set log level.\n{e}", exc_info=True)
 
-    # If 'use_lock_file' configuration is set, check if lockfile exists for tomorrow's newspaper
-    if config['use_lock_file']:
-        try:
-            lock_files = [entry for entry in os.listdir(dir_path) if os.path.isfile(entry) and entry.endswith('.lock')]
-            # Delete all lock files that do not refer to tomorrow's date
-            for file in lock_files:
-                if not file.startswith('.' + tomorrow):
-                    os.remove(dir_path + file)
-            # If there is a lock file for tomorrow, exit the program
-            for file in lock_files:
-                if file.startswith('.' + tomorrow):
-                    logging.info('Tomorrow\'s newspaper was already downloaded. Execution canceled.')
-                    sys.exit(0)
-        except Exception as e:
-            logging.error(f"Could not check for lock files.\n{e}", exc_info=True)
-
     # Read download history from csv file
     try:
         df = pd.read_csv(dir_path + 'download_history.csv', header=0)
@@ -51,6 +35,16 @@ def main(config: dict):
             ]
         )
 
+    # If the 'limit_requests' argument is specified, check whether tomorrow's newspaper has already been downloaded
+    if config['limit_requests']:
+        try:
+            if any(df.file.str.contains(pat=tomorrow)):
+                logging.info('Tomorrow\'s newspaper was already downloaded. Execution canceled.')
+                sys.exit(0)
+        except Exception as e:
+            logging.error(f"Could not check whether tomorrow's newspaper has already been downloaded.\n{e}",
+                          exc_info=True)
+
     # Instantiate downloader object
     try:
         taz_dl = TazDownloader(config['id'], config['password'], config['download_format'])
@@ -59,7 +53,7 @@ def main(config: dict):
         sys.exit(1)
 
     try:
-        # Get newspapers available for download
+        # Get newspaper available for download
         newspaper_available = taz_dl.scrape_newspaper()
 
         # Remove outdated newspaper from download_history.csv
@@ -79,16 +73,6 @@ def main(config: dict):
                 newspaper_downloaded.append(n)
         except Exception as e:
             logging.error(f"Could not download {n}\n{e}", exc_info=True)
-
-    # Create lock file for tomorrow
-    if config['use_lock_file']:
-        try:
-            lock_file = '.' + tomorrow + '.lock'
-            for n in newspaper_downloaded:
-                if n.startswith('taz_' + tomorrow):
-                    os.mknod(dir_path + lock_file)
-        except Exception as e:
-            logging.error(f"Could not download create lock file \"{lock_file}\"\n{e}", exc_info=True)
 
     # Add downloaded newspaper to download_history.csv
     try:

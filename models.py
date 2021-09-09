@@ -25,7 +25,7 @@ class TazConfiguration:
         ('password', True),
         ('download_format', False),
         ('download_folder', True),
-        ('use_lock_file', False),
+        ('limit_requests', False),
         ('log_level', False),
     ]
 
@@ -65,19 +65,21 @@ class TazConfiguration:
         Parse command line arguments.
         """
         argparser = argparse.ArgumentParser(
-            description='Download taz e-paper'
+            description='Download taz e-paper',
         )
         argparser.add_argument(
             '-i',
             '--id',
             action='store',
             type=str,
+            help='Your taz-ID',
         )
         argparser.add_argument(
             '-p',
             '--password',
             action='store',
             type=str,
+            help='Your password',
         )
         argparser.add_argument(
             '-f',
@@ -85,23 +87,27 @@ class TazConfiguration:
             action='store',
             type=str,
             choices=['pdf', 'epub', 'epubt', 'html', 'ascii', 'mobi', 'mobit'],
+            help='The e-paper format',
         )
         argparser.add_argument(
             '-d',
             '--download_folder',
             action='store',
             type=str,
+            help='The path to a folder where the e-paper should be stored',
         )
         argparser.add_argument(
             '-l',
-            '--use_lock_file',
+            '--limit-requests',
             action='store_true',
-            default=None
+            default=None,
+            help='Only query website for available newspaper if tomorrow\'s newspaper has not already been downloaded',
         )
         argparser.add_argument(
             '--log_level',
             action='store',
             choices=['notset', 'debug', 'info', 'warning', 'error', 'critical'],
+            help='Set the log level',
         )
         return argparser.parse_args()
 

@@ -11,9 +11,10 @@ download_format: "pdf"
 # Where should the downloaded files be stored?
 download_folder: "/path/to/download/folder"
 
-# Use a lock file that indicates whether tomorrow's newspaper has already been downloaded to limit the number of times
-# the taz.de website is queried for new editions
-use_lock_file: True
+# Before the program searches for new download candidates, it checks whether tomorrow's newspaper has already been
+# downloaded by the number of queries on the taz.de website.
+# If you want to download all available newspaper missing in the download_history.csv, set this value to False.
+limit_requests: True
 
 # Set the log level.
 # Valid formats are: notset, debug, info, warning, error, critical
