@@ -9,13 +9,15 @@ from models import TazDownloader, TazConfiguration
 from exceptions import TazConfigurationError, TazDownloadError, TazDownloadFormatException
 
 # Get directory
-dir_path = os.path.dirname(os.path.realpath(__file__)) + '/'
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 def main(config: dict):
-
     # Get german date for tomorrow
     tomorrow = (datetime.now(pytz.timezone('Europe/Berlin')) + timedelta(1)).strftime('%Y_%m_%d')
+
+    # Define tmp/ folder
+    tmp_folder = os.path.join(dir_path, 'tmp')
 
     # Set log level
     try:
@@ -25,7 +27,7 @@ def main(config: dict):
 
     # Read download history from csv file
     try:
-        df = pd.read_csv(dir_path + 'download_history.csv', header=0)
+        df = pd.read_csv(os.path.join(dir_path, 'download_history.csv'), header=0)
     except FileNotFoundError:
         # In case, there isn't yet a csv file, create data frame with headers
         df = pd.DataFrame(
@@ -69,7 +71,7 @@ def main(config: dict):
     newspaper_downloaded = []
     for n in newspaper_to_download:
         try:
-            if taz_dl.download_newspaper(n):
+            if taz_dl.download_newspaper(n, tmp_folder):
                 newspaper_downloaded.append(n)
         except Exception as e:
             logging.error(f"Could not download {n}\n{e}", exc_info=True)
@@ -85,17 +87,19 @@ def main(config: dict):
             )
             df = df.append(df_tmp, ignore_index=True)
         df.sort_values(by='file', ascending=False, inplace=True)
-        df.to_csv(dir_path + 'download_history.csv', index=False)
+        df.to_csv(os.path.join(dir_path, 'download_history.csv'), index=False)
     except Exception as e:
         logging.error(f"Could not update download_history.csv\n{e}", exc_info=True)
 
     # Move downloaded file to download folder
     if os.path.isdir(config['download_folder']):
         download_folder = \
-            config['download_folder'] if config['download_folder'].endswith('/') else config['download_folder'] + "/"
+            config['download_folder'] \
+            if config['download_folder'].endswith(os.path.sep) \
+            else config['download_folder'] + os.path.sep
         for n in newspaper_downloaded:
             try:
-                shutil.move(dir_path + 'tmp/' + n, download_folder)
+                shutil.move(os.path.join(tmp_folder, n), download_folder)
             except Exception as e:
                 logging.error(f"Could not move file to download folder \"{download_folder}\"\n{e}", exc_info=True)
 
@@ -104,7 +108,7 @@ if __name__ == '__main__':
 
     # Set up logging
     logging.basicConfig(
-        filename=dir_path + 'tazPlease.log',
+        filename=os.path.join(dir_path, 'tazPlease.log'),
         level=logging.ERROR,
         format='%(asctime)s - %(message)s'
     )

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from envyaml import EnvYAML
 import argparse
 
-dir_path = os.path.dirname(os.path.realpath(__file__)) + '/'
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class TazConfiguration:
@@ -43,7 +43,7 @@ class TazConfiguration:
     def _load_config(self):
         # Try to load config.yaml
         try:
-            conf_yaml = EnvYAML(dir_path + 'config.yaml', dir_path + '.env')
+            conf_yaml = EnvYAML(os.path.join(dir_path, 'config.yaml'), os.path.join(dir_path, '.env'))
         except Exception as e:
             raise Exception(f"Something went wrong when reading config.yaml.\n{e}")
 
@@ -141,17 +141,17 @@ class TazDownloader:
         except HTTPError as http_e:
             raise TazDownloadError(f"Could not scrape available newspaper editions:\n{http_e}")
 
-    def download_newspaper(self, taz: str, download_folder: str = dir_path + 'tmp/'):
+    def download_newspaper(self, taz: str, download_folder: str = os.path.join(dir_path, 'tmp')):
         """
-        Downloads a newspaper from dl.taz.de and stores it in tmp/
+        Downloads a newspaper from dl.taz.de and stores it in tmp folder
         """
 
         # Check if folder exists
         try:
-            if not os.path.isdir(dir_path):
-                os.mkdirs(dir_path)
+            if not os.path.isdir(download_folder):
+                os.makedirs(download_folder)
         except Exception as e:
-            raise TazDownloadError(f"Could find or create \"{dir_path}\":\n{e}")
+            raise TazDownloadError(f"Could find or create \"{download_folder}\":\n{e}")
 
         # download taz
         try:
@@ -167,7 +167,7 @@ class TazDownloader:
                     }
             ) as r:
                 # write response to file
-                with open(download_folder + taz, "wb") as f:
+                with open(os.path.join(download_folder, taz), "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
             return True
