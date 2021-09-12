@@ -1,11 +1,11 @@
 import os
 import requests
 from requests.exceptions import HTTPError
-from exceptions import TazDownloadFormatException
-from exceptions import TazDownloadError
+from exceptions import TazDownloadFormatException, TazConfigurationError, TazDownloadError
 from bs4 import BeautifulSoup
 from envyaml import EnvYAML
 import argparse
+import filetype
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -170,8 +170,22 @@ class TazDownloader:
                 with open(os.path.join(download_folder, taz), "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
+                # Unfortunately, the taz website does not respond with an http error code if the credentials are wrong.
+                # So we have to check if the response is a pdf file or the html page with an error message.
+                try:
+                    if filetype.guess(os.path.join(download_folder, taz)).mime != 'application/pdf':
+                        raise TazDownloadError()
+                except (AttributeError, TazDownloadError) as e:
+                    # Try to get the error message from the html file to put it in the log
+                    with open(os.path.join(download_folder, taz), 'r') as f:
+                        soup = BeautifulSoup(f.read(), 'html.parser')
+                        error_displayed_on_page = soup.find('p', class_='error').text
+                    if error_displayed_on_page:
+                        os.remove(os.path.join(download_folder, taz))
+                        raise TazDownloadError(error_displayed_on_page)
+                    else:
+                        os.remove(os.path.join(download_folder, taz))
+                        raise TazDownloadError(e)
             return True
         except HTTPError as http_e:
-            raise TazDownloadError(f"Could not download taz:\n{http_e}")
-        except Exception as e:
-            raise TazDownloadError(f"Something went wrong:\n{e}")
+            raise TazDownloadError(http_e)
