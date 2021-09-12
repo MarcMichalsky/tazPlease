@@ -1,13 +1,13 @@
 import os
 import requests
 from requests.exceptions import HTTPError
-from exceptions import TazDownloadFormatException
-from exceptions import TazDownloadError
+from exceptions import TazDownloadFormatException, TazConfigurationError, TazDownloadError
 from bs4 import BeautifulSoup
 from envyaml import EnvYAML
 import argparse
+import filetype
 
-dir_path = os.path.dirname(os.path.realpath(__file__)) + '/'
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class TazConfiguration:
@@ -43,7 +43,7 @@ class TazConfiguration:
     def _load_config(self):
         # Try to load config.yaml
         try:
-            conf_yaml = EnvYAML(dir_path + 'config.yaml', dir_path + '.env')
+            conf_yaml = EnvYAML(os.path.join(dir_path, 'config.yaml'), os.path.join(dir_path, '.env'))
         except Exception as e:
             raise Exception(f"Something went wrong when reading config.yaml.\n{e}")
 
@@ -141,17 +141,17 @@ class TazDownloader:
         except HTTPError as http_e:
             raise TazDownloadError(f"Could not scrape available newspaper editions:\n{http_e}")
 
-    def download_newspaper(self, taz: str, download_folder: str = dir_path + 'tmp/'):
+    def download_newspaper(self, taz: str, download_folder: str = os.path.join(dir_path, 'tmp')):
         """
-        Downloads a newspaper from dl.taz.de and stores it in tmp/
+        Downloads a newspaper from dl.taz.de and stores it in tmp folder
         """
 
         # Check if folder exists
         try:
-            if not os.path.isdir(dir_path):
-                os.mkdirs(dir_path)
+            if not os.path.isdir(download_folder):
+                os.makedirs(download_folder)
         except Exception as e:
-            raise TazDownloadError(f"Could find or create \"{dir_path}\":\n{e}")
+            raise TazDownloadError(f"Could find or create \"{download_folder}\":\n{e}")
 
         # download taz
         try:
@@ -167,11 +167,25 @@ class TazDownloader:
                     }
             ) as r:
                 # write response to file
-                with open(download_folder + taz, "wb") as f:
+                with open(os.path.join(download_folder, taz), "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
+                # Unfortunately, the taz website does not respond with an http error code if the credentials are wrong.
+                # So we have to check if the response is a pdf file or the html page with an error message.
+                try:
+                    if filetype.guess(os.path.join(download_folder, taz)).mime != 'application/pdf':
+                        raise TazDownloadError()
+                except (AttributeError, TazDownloadError) as e:
+                    # Try to get the error message from the html file to put it in the log
+                    with open(os.path.join(download_folder, taz), 'r') as f:
+                        soup = BeautifulSoup(f.read(), 'html.parser')
+                        error_displayed_on_page = soup.find('p', class_='error').text
+                    if error_displayed_on_page:
+                        os.remove(os.path.join(download_folder, taz))
+                        raise TazDownloadError(error_displayed_on_page)
+                    else:
+                        os.remove(os.path.join(download_folder, taz))
+                        raise TazDownloadError(e)
             return True
         except HTTPError as http_e:
-            raise TazDownloadError(f"Could not download taz:\n{http_e}")
-        except Exception as e:
-            raise TazDownloadError(f"Something went wrong:\n{e}")
+            raise TazDownloadError(http_e)
