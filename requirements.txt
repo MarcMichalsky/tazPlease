@@ -2,3 +2,4 @@ pandas~=1.1.5
 envyaml~=1.8.210417
 requests~=2.26.0
 beautifulsoup4~=4.9.3
+filetype==1.0.7
