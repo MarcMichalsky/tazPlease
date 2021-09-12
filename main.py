@@ -23,7 +23,7 @@ def main(config: dict):
     try:
         logging.getLogger().setLevel(config['log_level'].upper())
     except ValueError as e:
-        logging.error(f"Could not set log level.\n{e}", exc_info=True)
+        logging.error(f"Could not set log level.\n    {e}")
 
     # Read download history from csv file
     try:
@@ -44,14 +44,13 @@ def main(config: dict):
                 logging.info('Tomorrow\'s newspaper was already downloaded. Execution canceled.')
                 sys.exit(0)
         except Exception as e:
-            logging.error(f"Could not check whether tomorrow's newspaper has already been downloaded.\n{e}",
-                          exc_info=True)
+            logging.error(f"Could not check whether tomorrow's newspaper has already been downloaded.\n    {e}")
 
     # Instantiate downloader object
     try:
         taz_dl = TazDownloader(config['id'], config['password'], config['download_format'])
     except TazDownloadFormatException as e:
-        logging.error(e, exc_info=True)
+        logging.error(e)
         sys.exit(1)
 
     try:
@@ -64,7 +63,7 @@ def main(config: dict):
         # Find newspaper which are not already downloaded
         newspaper_to_download = [n for n in newspaper_available if n not in df.file.values]
     except TazDownloadError as e:
-        logging.error(e, exc_info=True)
+        logging.error(e)
         sys.exit(1)
 
     # Download newspaper
@@ -74,7 +73,7 @@ def main(config: dict):
             if taz_dl.download_newspaper(n, tmp_folder):
                 newspaper_downloaded.append(n)
         except Exception as e:
-            logging.error(f"Could not download {n}\n{e}", exc_info=True)
+            logging.error(f"Could not download {n}\n    {e}")
 
     # Add downloaded newspaper to download_history.csv
     try:
@@ -89,9 +88,10 @@ def main(config: dict):
         df.sort_values(by='file', ascending=False, inplace=True)
         df.to_csv(os.path.join(dir_path, 'download_history.csv'), index=False)
     except Exception as e:
-        logging.error(f"Could not update download_history.csv\n{e}", exc_info=True)
+        logging.error(f"Could not update download_history.csv\n    {e}")
 
     # Move downloaded file to download folder
+    newspaper_downloaded_string = "\n    ".join(newspaper_downloaded)
     if os.path.isdir(config['download_folder']):
         download_folder = \
             config['download_folder'] \
@@ -101,7 +101,12 @@ def main(config: dict):
             try:
                 shutil.move(os.path.join(tmp_folder, n), download_folder)
             except Exception as e:
-                logging.error(f"Could not move file to download folder \"{download_folder}\"\n{e}", exc_info=True)
+                logging.error(f"Could not move {n} to download folder \"{download_folder}\"\n    {e}")
+        if newspaper_downloaded:
+            logging.info(f"Downloaded\n    {newspaper_downloaded_string}\n    to {config['download_folder']}")
+    else:
+        logging.error(f"{config['download_folder']} does not exists.\n    {newspaper_downloaded_string}"
+                      f"\n    downloaded to {tmp_folder}")
 
 
 if __name__ == '__main__':
