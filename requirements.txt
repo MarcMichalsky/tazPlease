@@ -1,4 +1,4 @@
-pandas~=1.4.3
+pandas~=1.4.4
 envyaml==1.10.211231
 requests==2.28.1
 beautifulsoup4==4.11.1
