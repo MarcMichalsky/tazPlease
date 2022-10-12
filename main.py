@@ -112,7 +112,7 @@ def main(config: dict):
                 except Exception as e:
                     logging.error(f"Could not upload {n} to {url}\n    {e}")
             if newspaper_downloaded:
-                logging.info(f"Uploaded\n    {newspaper_downloaded_string}\n    to {url}")
+                logging.info(f"Uploaded\n    {newspaper_downloaded_string}\n    to {config['nextcloud_webdav_url']}")
 
 
         else:
