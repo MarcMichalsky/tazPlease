@@ -1,11 +1,13 @@
+import argparse
 import os
+
+import filetype
 import requests
-from requests.exceptions import HTTPError
-from exceptions import TazDownloadFormatException, TazConfigurationError, TazDownloadError
 from bs4 import BeautifulSoup
 from envyaml import EnvYAML
-import argparse
-import filetype
+from requests.exceptions import HTTPError
+
+from exceptions import TazDownloadFormatException, TazConfigurationError, TazDownloadError
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 

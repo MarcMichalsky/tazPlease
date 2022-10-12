@@ -1,15 +1,17 @@
-import sys
+import logging
 import os
+import shutil
+import sys
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
-import validators
-import pytz
-import logging
-import shutil
-from webdav4.client import Client
+
 import pandas as pd
-from models import TazDownloader, TazConfiguration
+import pytz
+import validators
+from webdav4.client import Client
+
 from exceptions import TazConfigurationError, TazDownloadError, TazDownloadFormatException
+from models import TazDownloader, TazConfiguration
 
 # Get directory
 dir_path = os.path.dirname(os.path.realpath(__file__))
