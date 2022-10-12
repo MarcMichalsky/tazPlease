@@ -24,7 +24,9 @@ class TazConfiguration:
         ('id', True),
         ('password', True),
         ('download_format', False),
-        ('download_folder', True),
+        ('download_folder', False),
+        ('nextcloud_webdav_url', False),
+        ('nextcloud_webdav_password', False),
         ('limit_requests', False),
         ('log_level', False),
     ]
@@ -97,6 +99,18 @@ class TazConfiguration:
             help='The path to a folder where the e-paper should be stored',
         )
         argparser.add_argument(
+            '--nextcloud_webdav_url',
+            action='store',
+            type=str,
+            help='The url of a Nextcloud webdav',
+        )
+        argparser.add_argument(
+            '--nextcloud_webdav_password',
+            action='store',
+            type=str,
+            help='The webdav password',
+        )
+        argparser.add_argument(
             '-l',
             '--limit-requests',
             action='store_true',
@@ -151,7 +165,7 @@ class TazDownloader:
             if not os.path.isdir(download_folder):
                 os.makedirs(download_folder)
         except Exception as e:
-            raise TazDownloadError(f"Could find or create \"{download_folder}\":\n{e}")
+            raise TazDownloadError(f"Could not find or create \"{download_folder}\":\n{e}")
 
         # download taz
         try:
@@ -170,7 +184,7 @@ class TazDownloader:
                 with open(os.path.join(download_folder, taz), "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-                # Unfortunately, the taz website does not respond with an http error code if the credentials are wrong.
+                # Unfortunately, the taz website does not respond with a http error code if the credentials are wrong.
                 # So we have to check if the response is a pdf file or the html page with an error message.
                 try:
                     if filetype.guess(os.path.join(download_folder, taz)).mime != 'application/pdf':

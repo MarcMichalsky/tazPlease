@@ -1,9 +1,12 @@
 import sys
 import os
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
+import validators
 import pytz
 import logging
 import shutil
+from webdav4.client import Client
 import pandas as pd
 from models import TazDownloader, TazConfiguration
 from exceptions import TazConfigurationError, TazDownloadError, TazDownloadFormatException
@@ -16,7 +19,7 @@ def main(config: dict):
     # Get german date for tomorrow
     tomorrow = (datetime.now(pytz.timezone('Europe/Berlin')) + timedelta(1)).strftime('%Y_%m_%d')
 
-    # Define tmp/ folder
+    # Define tmp folder
     tmp_folder = os.path.join(dir_path, 'tmp')
 
     # Set log level
@@ -90,23 +93,53 @@ def main(config: dict):
     except Exception as e:
         logging.error(f"Could not update download_history.csv\n    {e}")
 
-    # Move downloaded file to download folder
     newspaper_downloaded_string = "\n    ".join(newspaper_downloaded)
-    if os.path.isdir(config['download_folder']):
-        download_folder = \
-            config['download_folder'] \
-            if config['download_folder'].endswith(os.path.sep) \
-            else config['download_folder'] + os.path.sep
-        for n in newspaper_downloaded:
-            try:
-                shutil.move(os.path.join(tmp_folder, n), download_folder)
-            except Exception as e:
-                logging.error(f"Could not move {n} to download folder \"{download_folder}\"\n    {e}")
-        if newspaper_downloaded:
-            logging.info(f"Downloaded\n    {newspaper_downloaded_string}\n    to {config['download_folder']}")
+
+    if config['nextcloud_webdav_url']:
+        if validators.url(config['nextcloud_webdav_url']):
+            url = urlparse(config['nextcloud_webdav_url'])
+            webdav_user = url.path.split("/")[-1]
+            webdav_password = config['nextcloud_webdav_password']
+            client = Client(f"{url.scheme}://{url.hostname}/public.php/webdav/",
+                            auth=(webdav_user, webdav_password))
+
+            for n in newspaper_downloaded:
+                try:
+                    client.upload_file(os.path.join(tmp_folder, n), n)
+                    os.remove(os.path.join(tmp_folder, n))
+                except Exception as e:
+                    logging.error(f"Could not upload {n} to {url}\n    {e}")
+            if newspaper_downloaded:
+                logging.info(f"Uploaded\n    {newspaper_downloaded_string}\n    to {url}")
+
+
+        else:
+            logging.error(f"Invalid url for Nextcloud webdav.")
+            sys.exit(1)
+
     else:
-        logging.error(f"{config['download_folder']} does not exists.\n    {newspaper_downloaded_string}"
-                      f"\n    downloaded to {tmp_folder}")
+        # If neither a webdav url nor a download folder was provided, exit the program here
+        if not config['download_folder']:
+            logging.error(f"Please provide a download folder or a Nextcloud webdav url.\n    {newspaper_downloaded_string}"
+                          f"\n    downloaded to {tmp_folder}")
+            sys.exit(1)
+
+        # Move downloaded file to download folder
+        if os.path.isdir(config['download_folder']):
+            download_folder = \
+                config['download_folder'] \
+                    if config['download_folder'].endswith(os.path.sep) \
+                    else config['download_folder'] + os.path.sep
+            for n in newspaper_downloaded:
+                try:
+                    shutil.move(os.path.join(tmp_folder, n), download_folder)
+                except Exception as e:
+                    logging.error(f"Could not move {n} to download folder \"{download_folder}\"\n    {e}")
+            if newspaper_downloaded:
+                logging.info(f"Downloaded\n    {newspaper_downloaded_string}\n    to {config['download_folder']}")
+        else:
+            logging.error(f"{config['download_folder']} does not exists.\n    {newspaper_downloaded_string}"
+                          f"\n    downloaded to {tmp_folder}")
 
 
 if __name__ == '__main__':
