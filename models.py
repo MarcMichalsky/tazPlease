@@ -176,7 +176,7 @@ class TazDownloader:
                     stream=True,
                     headers=self.HEADERS,
                     params={
-                        'name': self.taz_id,
+                        'username': self.taz_id,
                         'password': self.password,
                         'id': taz,
                         'Laden': '+Laden+',
